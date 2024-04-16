@@ -97,10 +97,17 @@ e1000_transmit(struct mbuf *m)
 {
   //
   // Your code here.
+  // lock 
+  acquire(&e1000_lock);
 
-    //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
-    //the E1000_TDT control register.
 
+  //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
+  //the E1000_TDT control register.
+  int position = regs[E1000_TDT];
+
+  position = 1;
+  printf("%d", position);
+  
     // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed
     // by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an
     // error.
