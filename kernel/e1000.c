@@ -97,6 +97,26 @@ e1000_transmit(struct mbuf *m)
 {
   //
   // Your code here.
+
+    //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
+    //the E1000_TDT control register.
+
+    // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed
+    // by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an
+    // error.
+      // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
+      // was one).
+
+    //Then, fill in the descriptor.
+      //m->head points to the packet's content in memory and m->len is the packet length.
+      //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
+      //mbuf for later freeing.
+  
+    // Finally, update the ring position by adding one to E1000_TDT modulo TX_RING_SIZE.
+  
+  // If e1000_transmit() added the mbuf successfully to the ring, return 0. On failure (e.g., there is no
+  // descriptor available to transmit the mbuf), return -1 so that the caller knows to free the mbuf
+  
   //
   // the mbuf contains an ethernet frame; program it into
   // the TX descriptor ring so that the e1000 sends it. Stash
