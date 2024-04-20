@@ -151,7 +151,11 @@ e1000_recv(void)
 {
   //
   // Chris and Joe were here.
-  //
+
+  // Get the lock so we can do stuff and things.
+
+  acquire(&e1000_lock);
+  
   // First, ask the E1000 for the ring index at which the next waiting received packet (if any) is located,
   // by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
 
@@ -161,12 +165,22 @@ e1000_recv(void)
   // of the descriptor. If not, stop.  Otherwise, update the mbuf's m->len to the length reported in the descriptor. Deliver the mbuf to the
   // network stack using net_rx().
 
-  if (rx_ring[index].status & E1000_RXD_STAT_DD) {
+  while ((rx_ring[index].status & E1000_RXD_STAT_DD) != 0) {
+    //if the bit is not set then stop bcz there is nothing there.  No if statement is necessary since condition is check each loop
+    //If we don't stop then we update mbuf's m-> len to hte length reported in the descriptor.
+
+    mbuf.length = rx_ring[index].length;
+    net_rx(mbuf);
+
+    // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
+    // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
     
+    mbuf = mbuffalloc();
+    rx_ring[index] = mbuf.head;
+    rx_ring[index].status = 0;
   }
   
-  // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
-  // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
+
 
   // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
 
@@ -179,6 +193,7 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver an mbuf for each packet (using net_rx()).
   //
+  release(&e1000_lock);
 }
 
 void
