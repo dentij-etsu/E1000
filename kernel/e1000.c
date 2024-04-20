@@ -127,12 +127,25 @@ e1000_transmit(struct mbuf *m)
       return -1;
     }
 
+// Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
+      // was one).
+   struct mbuf *temp = tx_mbufs[position]; // get the current element in the buffer
+   mbuffree(temp);
+
+      // if (tx_ring[position] !empty)
+        // free mbuf
+
     //Then, fill in the descriptor.
       //m->head points to the packet's content in memory and m->len is the packet length.
       //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
       //mbuf for later freeing.
+
+    // m is a param for the buffer
+    tx_ring[position].addr = (uint64) m->head;
+    tx_ring[position].length = (uint64) m->len;
   
     // Finally, update the ring position by adding one to E1000_TDT modulo TX_RING_SIZE.
+    regs[E1000_TDT] = (position + 1) % TX_RING_SIZE;
   
   // If e1000_transmit() added the mbuf successfully to the ring, return 0. On failure (e.g., there is no
   // descriptor available to transmit the mbuf), return -1 so that the caller knows to free the mbuf
@@ -142,7 +155,8 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   //
-  
+
+  release(&e1000_lock);
   return 0;
 }
 
