@@ -161,6 +161,10 @@ e1000_recv(void)
   // of the descriptor. If not, stop.  Otherwise, update the mbuf's m->len to the length reported in the descriptor. Deliver the mbuf to the
   // network stack using net_rx().
 
+  if (rx_ring[index].status & E1000_RXD_STAT_DD) {
+    
+  }
+  
   // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
   // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
 
