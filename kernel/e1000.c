@@ -155,6 +155,8 @@ e1000_recv(void)
   // First, ask the E1000 for the ring index at which the next waiting received packet (if any) is located,
   // by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
 
+  int index = (regs[E1000_RDT] % RX_RING_SIZE) + 1;
+  
   // Then, check if a new packet is available by checking for the E1000_RXD_STAT_DD bit in the status portion
   // of the descriptor. If not, stop.  Otherwise, update the mbuf's m->len to the length reported in the descriptor. Deliver the mbuf to the
   // network stack using net_rx().
