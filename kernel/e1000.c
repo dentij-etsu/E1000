@@ -192,7 +192,7 @@ e1000_recv(void)
     // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
     
     rx_mbufs[index] = mbuffalloc();   // might need parameter
-    rx_ring[index].addr = rx_mbufs[index]->head;
+    rx_ring[index].addr = (uint64)rx_mbufs[index]->head;
     rx_ring[index].status = 0;
 
   // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
