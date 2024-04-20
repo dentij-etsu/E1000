@@ -191,9 +191,13 @@ e1000_recv(void)
     // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
     // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
     
-    rx_mbufs[index] = mbuffalloc();
-    //rx_ring[index] = mbuf.head;
+    rx_mbufs[index] = mbuffalloc();   // might need parameter
+    rx_ring[index].addr = rx_mbufs[index]->head;
     rx_ring[index].status = 0;
+
+  // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
+
+  regs[E1000_RDT] = index;
   }
 
   // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
