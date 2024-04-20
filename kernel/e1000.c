@@ -162,25 +162,25 @@ e1000_recv(void)
   int index = (regs[E1000_RDT] % RX_RING_SIZE) + 1;
   
   // Then, check if a new packet is available by checking for the E1000_RXD_STAT_DD bit in the status portion
-  // of the descriptor. If not, stop.  Otherwise, update the mbuf's m->len to the length reported in the descriptor. Deliver the mbuf to the
-  // network stack using net_rx().
-
+  // of the descriptor. If not, stop.
   while ((rx_ring[index].status & E1000_RXD_STAT_DD) != 0) {
-    //if the bit is not set then stop bcz there is nothing there.  No if statement is necessary since condition is check each loop
-    //If we don't stop then we update mbuf's m-> len to hte length reported in the descriptor.
+    //if the bit is not set then stop bcz there is nothing there.  No if statement is necessary since condition is checked each loop
 
-    mbuf.length = rx_ring[index].length;
-    net_rx(mbuf);
+    //Otherwise, update the mbuf's m->len to the length reported in the descriptor.
+
+    //mbuf.length = rx_ring[index].length;
+    mbufput(rx_mbufs[index], rx_ring[index].length);
+
+    //Deliver the mbuf to the network stack using net_rx().
+    net_rx(rx_mbufs[index]);
 
     // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
     // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
     
-    mbuf = mbuffalloc();
-    rx_ring[index] = mbuf.head;
+    rx_mbufs[index] = mbuffalloc();
+    //rx_ring[index] = mbuf.head;
     rx_ring[index].status = 0;
   }
-  
-
 
   // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
 
