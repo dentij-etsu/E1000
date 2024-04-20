@@ -104,8 +104,6 @@ e1000_transmit(struct mbuf *m)
   //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
  //the E1000_TDT control register.
   int position = regs[E1000_TDT];
-
-  printf("%d", position); 
   
     // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed
     // by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an
@@ -139,6 +137,10 @@ e1000_transmit(struct mbuf *m)
       //m->head points to the packet's content in memory and m->len is the packet length.
       //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
       //mbuf for later freeing.
+      //only 2 flags in book and in header
+    tx_ring[position].cmd |= E1000_TXD_CMD_EOP;
+    tx_ring[position].cmd |= E1000_TXD_CMD_RS;
+    tx_mbufs[position] = m; // save the pointer ? 
 
     // m is a param for the buffer
     tx_ring[position].addr = (uint64) m->head;
@@ -159,7 +161,6 @@ e1000_transmit(struct mbuf *m)
   release(&e1000_lock);
   return 0;
 }
-
 static void
 e1000_recv(void)
 {
