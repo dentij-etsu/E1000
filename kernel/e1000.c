@@ -19,7 +19,8 @@ static struct mbuf *rx_mbufs[RX_RING_SIZE];
 // remember where the e1000's registers live.
 static volatile uint32 *regs;
 
-struct spinlock e1000_lock;
+struct spinlock e1000_tlock;
+struct spinlock e1000_rlock;
 
 // called by pci_init().
 // xregs is the memory address at which the
@@ -29,7 +30,8 @@ e1000_init(uint32 *xregs)
 {
   int i;
 
-  initlock(&e1000_lock, "e1000");
+  initlock(&e1000_tlock, "e1000");
+  initlock(&e1000_rlock, "e1000");
 
   regs = xregs;
 
@@ -98,7 +100,10 @@ e1000_transmit(struct mbuf *m)
   //
   // Your code here.
   // lock 
-  acquire(&e1000_lock);
+  
+  //printf("trans pre\n");
+  acquire(&e1000_tlock);
+  //printf("trans post\n");
 
 
   //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
@@ -118,9 +123,9 @@ e1000_transmit(struct mbuf *m)
 
 
     // e1000_txd_stat_dd should be & with something, it is a bit map 
-    if(tx_ring[position].status & E1000_TXD_STAT_DD) {
+    if(!(tx_ring[position].status & E1000_TXD_STAT_DD)) {
       // release lock? 
-      release(&e1000_lock);
+      release(&e1000_tlock);
       // return an error
       return -1;
     }
@@ -160,8 +165,8 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   //
-
-  release(&e1000_lock);
+	//printf("Packet transmit\n");
+  release(&e1000_tlock);
   return 0;
 }
 static void
@@ -171,9 +176,9 @@ e1000_recv(void)
   // Chris and Joe were here.
 
   // Get the lock so we can do stuff and things.
-
-  acquire(&e1000_lock);
-  
+	//printf("recv pre\n");
+  acquire(&e1000_rlock);
+  //printf("recv post\n");
   // First, ask the E1000 for the ring index at which the next waiting received packet (if any) is located,
   // by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
 
@@ -187,12 +192,12 @@ e1000_recv(void)
     //Otherwise, update the mbuf's m->len to the length reported in the descriptor.
 
     //mbuf.length = rx_ring[index].length;
+
     mbufput(rx_mbufs[index], rx_ring[index].length);
 
+
     //Deliver the mbuf to the network stack using net_rx().
-    release(&e1000_lock);
     net_rx(rx_mbufs[index]);
-    acquire(&e1000_lock);
 
     // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
     // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
@@ -217,7 +222,9 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver an mbuf for each packet (using net_rx()).
   //
-  release(&e1000_lock);
+  
+  
+  release(&e1000_rlock);
 }
 
 void
