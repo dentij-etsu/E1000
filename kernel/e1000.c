@@ -137,8 +137,26 @@ static void
 e1000_recv(void)
 {
   //
-  // Your code here.
+  // Chris and Joe were here.
   //
+  // First, ask the E1000 for the ring index at which the next waiting received packet (if any) is located,
+  // by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
+
+  // Then, check if a new packet is available by checking for the E1000_RXD_STAT_DD bit in the status portion
+  // of the descriptor. If not, stop.  Otherwise, update the mbuf's m->len to the length reported in the descriptor. Deliver the mbuf to the
+  // network stack using net_rx().
+
+  // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
+  // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
+
+  // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
+
+  // e1000_init() initializes the RX ring with mbufs, and you'll want to look at how it does that (and, perhaps,
+  // “borrow” code).
+
+  // At some point, the total number of packets that have ever arrived will exceed the ring size (16); make sure
+  // your code can handle that.
+  
   // Check for packets that have arrived from the e1000
   // Create and deliver an mbuf for each packet (using net_rx()).
   //
