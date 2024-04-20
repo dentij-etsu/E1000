@@ -102,17 +102,30 @@ e1000_transmit(struct mbuf *m)
 
 
   //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
-  //the E1000_TDT control register.
+ //the E1000_TDT control register.
   int position = regs[E1000_TDT];
 
-  position = 1;
-  printf("%d", position);
+  printf("%d", position); 
   
     // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed
     // by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an
     // error.
       // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
       // was one).
+
+  // if E1000_TXD_STAT_DD is not set (== 0),
+    // then the e1000 hasn't finish the previous transmission request (return error)
+  //else 
+    //use mbuffree to free the last mbuf
+
+
+    // e1000_txd_stat_dd should be & with something, it is a bit map 
+    if(tx_ring[position].status & E1000_TXD_STAT_DD) {
+      // release lock? 
+      release(&e1000_lock);
+      // return an error
+      return -1;
+    }
 
     //Then, fill in the descriptor.
       //m->head points to the packet's content in memory and m->len is the packet length.
