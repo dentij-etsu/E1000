@@ -128,8 +128,10 @@ e1000_transmit(struct mbuf *m)
 // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
       // was one).
    struct mbuf *temp = tx_mbufs[position]; // get the current element in the buffer
-   mbuffree(temp);
-
+   if(temp){
+    mbuffree(temp);
+   }
+   
       // if (tx_ring[position] !empty)
         // free mbuf
 
@@ -138,8 +140,9 @@ e1000_transmit(struct mbuf *m)
       //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
       //mbuf for later freeing.
       //only 2 flags in book and in header
-    tx_ring[position].cmd |= E1000_TXD_CMD_EOP;
+      
     tx_ring[position].cmd |= E1000_TXD_CMD_RS;
+    tx_ring[position].cmd |= E1000_TXD_CMD_EOP;
     tx_mbufs[position] = m; // save the pointer ? 
 
     // m is a param for the buffer
@@ -187,12 +190,14 @@ e1000_recv(void)
     mbufput(rx_mbufs[index], rx_ring[index].length);
 
     //Deliver the mbuf to the network stack using net_rx().
+    release(&e1000_lock);
     net_rx(rx_mbufs[index]);
+    acquire(&e1000_lock);
 
     // Then, allocate a new mbuf using mbufalloc() to replace the one just given to net_rx(). Program its data
     // pointer (m->head) into the descriptor. Clear the descriptor's status bits to zero.
     
-    rx_mbufs[index] = mbufalloc(0);   // might need parameter
+    rx_mbufs[index] = mbufalloc(0); 
     // Added (Uint64) to convert the type over.
     rx_ring[index].addr = (uint64) rx_mbufs[index]->head;
     rx_ring[index].status = 0;
