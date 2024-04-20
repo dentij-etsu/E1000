@@ -198,6 +198,7 @@ e1000_recv(void)
   // Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
 
   regs[E1000_RDT] = index;
+  index = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
   }
 
   // e1000_init() initializes the RX ring with mbufs, and you'll want to look at how it does that (and, perhaps,
