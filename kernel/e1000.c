@@ -94,69 +94,69 @@ e1000_init(uint32 *xregs)
   regs[E1000_IMS] = (1 << 7); // RXDW -- Receiver Descriptor Write Back
 }
 
+
 int
 e1000_transmit(struct mbuf *m)
-{
-  //
-  // Your code here.
-  // lock 
-  
-  //printf("trans pre\n");
-  acquire(&e1000_tlock);
-  //printf("trans post\n");
+{ 
+  // Acquire a lock (e1000_tlock)
+  // Read the current position of the transmit descriptor ring (position) from the E1000_TDT register
+  // Check if the transmit descriptor at the current position indicates that the previous transmission has finished.
+      // Do this by checking if the E1000_TXD_STAT_DD flag is set in the status field
+        // If it's not set, it means the E1000 hasn't finished transmitting the previous packet, so it returns an error (-1)
+        // If the previous transmission has finished, it frees mbuf
+  // Set the RS and EOP flags
+  // Save a pointer to the current mbuf
+  // Set the address and length fields in the transmit descriptor
+  // Update the ring position (E1000_TDT) to point to the next one
+  // Release the lock
+  // Return 0 if the mbuf was successfully added to the transmit ring or -1 if there was an error
+ 
+  acquire(&e1000_tlock); // lock
+  int position = regs[E1000_TDT]; // ring index
+  // Check to see if the previous transmission request was successful (bitwise & these together - should both be 1)
+  if(!(tx_ring[position].status & E1000_TXD_STAT_DD)) {
+    release(&e1000_tlock);
+    return -1; // Error
+  }
+  // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor
+  struct mbuf *temp = tx_mbufs[position]; // get the current element in the buffer
+  if(temp){
+  mbuffree(temp);
+  }
+  // set flags
+  tx_ring[position].cmd |= E1000_TXD_CMD_RS;
+  tx_ring[position].cmd |= E1000_TXD_CMD_EOP;
+  tx_mbufs[position] = m; // save the pointer 
+  // m is a param for the buffer
+  // location and size of the packet data to be transmitted 
+  tx_ring[position].addr = (uint64) m->head;
+  tx_ring[position].length = (uint64) m->len;
+  regs[E1000_TDT] = (position + 1) % TX_RING_SIZE; // update ring position 
+  release(&e1000_tlock);
+  return 0;
 
-
-  //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading
- //the E1000_TDT control register.
-  int position = regs[E1000_TDT];
-  
-    // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed
-    // by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an
-    // error.
-      // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
-      // was one).
-
+  //First, ask the E1000 for the TX ring index at which it's expecting the next packet, by reading the E1000_TDT control register.  
+  // Then, check if the ring is overflowing. If E1000_TXD_STAT_DD is not set in the descriptor indexed by E1000_TDT, the E1000 hasn't finished the corresponding previous transmission request, so return an error. Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there was one).
   // if E1000_TXD_STAT_DD is not set (== 0),
     // then the e1000 hasn't finish the previous transmission request (return error)
   //else 
     //use mbuffree to free the last mbuf
-
-
-    // e1000_txd_stat_dd should be & with something, it is a bit map 
-    if(!(tx_ring[position].status & E1000_TXD_STAT_DD)) {
-      // release lock? 
-      release(&e1000_tlock);
-      // return an error
-      return -1;
-    }
-
-// Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there
-      // was one).
-   struct mbuf *temp = tx_mbufs[position]; // get the current element in the buffer
-   if(temp){
-    mbuffree(temp);
-   }
+  // e1000_txd_stat_dd should be & with something, it is a bit map 
+  // Otherwise, use mbuffree() to free the last mbuf that was transmitted from that descriptor (if there was one).
    
-      // if (tx_ring[position] !empty)
-        // free mbuf
+  // if (tx_ring[position] !empty)
+    // free mbuf
 
-    //Then, fill in the descriptor.
-      //m->head points to the packet's content in memory and m->len is the packet length.
-      //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
-      //mbuf for later freeing.
-      //only 2 flags in book and in header
-      
-    tx_ring[position].cmd |= E1000_TXD_CMD_RS;
-    tx_ring[position].cmd |= E1000_TXD_CMD_EOP;
-    tx_mbufs[position] = m; // save the pointer ? 
+  //Then, fill in the descriptor.
+    //m->head points to the packet's content in memory and m->len is the packet length.
+    //Set the necessary cmd flags (look at Section 3.3 in the E1000 manual) and save a pointer to the
+    //mbuf for later freeing.
+    //only 2 flags in book and in header
+  // set flags
+  // save the pointer  
 
-    // m is a param for the buffer
-    tx_ring[position].addr = (uint64) m->head;
-    tx_ring[position].length = (uint64) m->len;
-  
-    // Finally, update the ring position by adding one to E1000_TDT modulo TX_RING_SIZE.
-    regs[E1000_TDT] = (position + 1) % TX_RING_SIZE;
-  
+  // Finally, update the ring position by adding one to E1000_TDT modulo TX_RING_SIZE.
+
   // If e1000_transmit() added the mbuf successfully to the ring, return 0. On failure (e.g., there is no
   // descriptor available to transmit the mbuf), return -1 so that the caller knows to free the mbuf
   
@@ -165,10 +165,8 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   //
-	//printf("Packet transmit\n");
-  release(&e1000_tlock);
-  return 0;
 }
+
 static void
 e1000_recv(void)
 {
